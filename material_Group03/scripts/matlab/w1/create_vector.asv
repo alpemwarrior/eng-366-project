@@ -1,0 +1,49 @@
+function [u, v] = create_vector(path, x, y)
+    d = find_distances(path, x, y);
+    d(length(d)+1) = 10e7;
+    [M,I] = min(d);
+
+    while 1
+        x2 = path(I+1,:);
+        x1 = path(I,:);
+        vline = x2-x1;
+        p = x1 + vline*(([x y]-x1)*vline'/(vline*vline'));
+        s = ([x y]-x1)*vline'/(vline*vline');
+        vnorm = p - [x y];
+        if (s > 1) && (I < (length(path(:,1))-1))
+            I = I+1;
+        else
+            break
+        end
+    end
+        
+    ktg = 1;
+    kn = d(I)*2;
+    if norm(vnorm)~=0
+        headingvec = vline/norm(vline)*ktg+vnorm/norm(vnorm)*kn;
+    else
+        headingvec = vline/norm(vline)*ktg;
+    end
+    
+    headingvec(2) = [0 0];
+    % If close to end, blend with next segment
+    if ((norm(vline)*(1-s)) < 0.3) && (I < (length(path(:,1))-1))
+        x2 = path(I+2,:);
+        x1 = path(I+1,:);
+        vline = x2-x1;
+        p = x1 + vline*(([x y]-x1)*vline'/(vline*vline'));
+        s = ([x y]-x1)*vline'/(vline*vline');
+        vnorm = p - [x y];
+        if norm(vnorm)~=0
+            headingvec2 = vline/norm(vline)*ktg+vnorm/norm(vnorm)*kn;
+        else
+            headingvec2 = vline/norm(vline)*ktg;
+        end
+    end
+    
+    w1 = 1/d(I); w2 = 1/d(I+1);
+    w1 = 1
+
+    u = headingvec(1);
+    v = headingvec(2);
+end

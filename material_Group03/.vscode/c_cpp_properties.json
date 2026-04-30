@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/var/lib/flatpak/app/com.cyberbotics.webots/current/active/files/webots/include/controller/c/**",
+                "/var/lib/flatpak/app/com.cyberbotics.webots/current/active/files/webots/include/controller/cpp/**",
+                "/usr/include/eigen3/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++20",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

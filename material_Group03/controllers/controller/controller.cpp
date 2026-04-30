@@ -11,6 +11,7 @@
 #include "FSM.hpp"
 #include "serial.hpp"
 #include "signal_analysis.hpp"
+#include "path_following.hpp"
 
 int main(int argc, char **argv) {
 
@@ -44,8 +45,17 @@ int main(int argc, char **argv) {
 
     // NAVIGATION
     double lws = 0.0, rws = 0.0;  // left and right wheel speeds
-    fsm(ps_values, lws, rws);     // finite state machine 
-    robot.set_motors_velocity(lws, rws); // set the wheel velocities
+    vec_2d wheel_speeds = vec_2d(0, 0);
+    double position[4];
+    
+    if( robot.get_ground_truth_pose(position) ) {
+      wheel_speeds = getWheelSpeeds(vec_2d(position[0], position[1]), vec_2d(cos(position[2]), sin(position[2])));
+    } else {
+      printf("Ground truth is disabled, press 'G'");
+    }
+    
+    //fsm(ps_values, lws, rws);     // finite state machine 
+    robot.set_motors_velocity(wheel_speeds.x()*pioneer_info.wheel_radius, wheel_speeds.y()*pioneer_info.wheel_radius); // set the wheel velocities
 
     // STATE ESTIMATION MARKER (green arrow in simulation)
     robot.hide_state_estimate_marker(); // this hides the marker in the simulation
