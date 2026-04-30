@@ -1,10 +1,11 @@
-#include <Eigen/MatrixFunctions>
+#include <Eigen/Geometry>
+#include <Eigen/Dense>
 
 typedef Eigen::Vector2d vec_2d;
 
 #define NPOINTS (sizeof(path)/sizeof(path[0]))
 #define NSEGMENTS (NPOINTS-1)
-#define SIGN(x) ((x > 0) - (x < 0))
+#define SIGN(x) ((x > 0.0) - (x < 0.0))
 #define K_FORWARD 1.0
 #define K_NORMAL  5.0
 
@@ -108,7 +109,7 @@ vec_2d getDirectionVector(vec_2d z) {
     vec_2d x2, vr, v1, v2;
     double d1, d2;
     int idx_closest = getClosestSegment(z);
-    vec_2d x2 = path[idx_closest+1];
+    x2 = path[idx_closest+1];
 
     if (((x2-z).norm() > R_BLEND) || (idx_closest == (NSEGMENTS-1))) {
         vr = getSingleVector(idx_closest, z);     
@@ -140,8 +141,12 @@ vec_2d getWheelSpeeds(vec_2d z, vec_2d heading) {
     // Only advance if the projection is in front of the robot
     vr = (proj > 0) ? proj*K_V : 0.0;
 
+    Eigen::Vector3d auxv1, auxv2;
+    auxv1 = Eigen::Vector3d(heading.x(), heading.y(), 0);
+    auxv2 = Eigen::Vector3d(vp.x(), vp.y(), 0);
+
     // Compute angle (signed)
-    angle = SIGN(heading.cross(vp))*acos(proj/vp.norm());
+    angle = SIGN(auxv1.cross(auxv2).z())*acos(proj/vp.norm());
 
     // Proportional controller to follow heading
     w = angle*K_ANGLE;

@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     if( robot.get_ground_truth_pose(position) ) {
       wheel_speeds = getWheelSpeeds(vec_2d(position[0], position[1]), vec_2d(cos(position[2]), sin(position[2])));
     } else {
-      printf("Ground truth is disabled, press 'G'");
+      printf("Ground truth is disabled, press 'G'\n");
     }
     
     //fsm(ps_values, lws, rws);     // finite state machine 
