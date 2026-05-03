@@ -47,15 +47,24 @@ int main(int argc, char **argv) {
     double lws = 0.0, rws = 0.0;  // left and right wheel speeds
     vec_2d wheel_speeds = vec_2d(0, 0);
     double position[4];
+    double* ps;
     
     if( robot.get_ground_truth_pose(position) ) {
-      wheel_speeds = getWheelSpeeds(vec_2d(position[0], position[1]), vec_2d(cos(position[2]), sin(position[2])));
+      //wheel_speeds = getWheelSpeeds(vec_2d(position[0], position[1]), vec_2d(cos(position[2]), sin(position[2])));
+      ps = get_proximity();
+      braitenberg(ps, &lws, &rws);
+      lws += 0.2; // Bias
+      rws += 0.2; // Bias
+      //wheel_speeds = vec_2d(lws, rws);
     } else {
       printf("Ground truth is disabled, press 'G'\n");
     }
+
+    delete ps; // This is not explained but ps should be destroyed
     
     //fsm(ps_values, lws, rws);     // finite state machine 
-    robot.set_motors_velocity(wheel_speeds.x()*pioneer_info.wheel_radius, wheel_speeds.y()*pioneer_info.wheel_radius); // set the wheel velocities
+    //robot.set_motors_velocity(wheel_speeds.x()*pioneer_info.wheel_radius, wheel_speeds.y()*pioneer_info.wheel_radius); // set the wheel velocities
+    robot.set_motors_velocity(lws, rws); // set the wheel velocities
 
     // STATE ESTIMATION MARKER (green arrow in simulation)
     robot.hide_state_estimate_marker(); // this hides the marker in the simulation
