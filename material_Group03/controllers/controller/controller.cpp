@@ -50,17 +50,16 @@ int main(int argc, char **argv) {
     double* ps;
     
     if( robot.get_ground_truth_pose(position) ) {
-      //wheel_speeds = getWheelSpeeds(vec_2d(position[0], position[1]), vec_2d(cos(position[2]), sin(position[2])));
-      ps = get_proximity();
-      braitenberg(ps, &lws, &rws);
-      lws += 0.2; // Bias
-      rws += 0.2; // Bias
+      wheel_speeds = getWheelSpeeds(vec_2d(position[0], position[1]), vec_2d(cos(position[2]), sin(position[2])));
+      ps = robot.get_proximity();
+      braitenberg(ps, lws, rws);
+      lws += wheel_speeds.x()*PioneerInfo::wheel_radius; // Bias
+      rws += wheel_speeds.y()*PioneerInfo::wheel_radius; // Bias
+      //lws += 1; rws += 1;
       //wheel_speeds = vec_2d(lws, rws);
     } else {
       printf("Ground truth is disabled, press 'G'\n");
     }
-
-    delete ps; // This is not explained but ps should be destroyed
     
     //fsm(ps_values, lws, rws);     // finite state machine 
     //robot.set_motors_velocity(wheel_speeds.x()*pioneer_info.wheel_radius, wheel_speeds.y()*pioneer_info.wheel_radius); // set the wheel velocities

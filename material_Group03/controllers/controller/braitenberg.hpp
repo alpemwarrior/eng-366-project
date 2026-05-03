@@ -4,6 +4,7 @@
 
 #define SENSOR_NUM 16
 #define SENSOR_MAX 1024
+#define SENSOR_MAX2 (1024*1024)
 
 /*
 Pioneer sensor layout:
@@ -21,11 +22,14 @@ Left                             Right
 Response: >5m -> 0, 0m -> 1024
 */
 
-#define B1 -1
-#define B2 -1
-#define B3 -1
-#define B4 -1
+// Side -> Front
+#define BGAIN 50 //10
+#define BPOW 15
 
+#define Bt1 -0.5
+#define Bt2 -0.75
+#define Bt3 -0.75   
+#define Bt4 -0.5
 /*
 [V] = [B][S]
 
@@ -37,9 +41,9 @@ Where [S] = [S0 ... S15]^T are the sensor readings (0 m -> 1024, >5 m -> 0)
 */
 
 double braitenberg_coefs[2][SENSOR_NUM] = {
-    0, 0, 0, 0, B4, B3, B2, B1, 0, 0, 0, 0, 0, 0, 0, 0,
-    B1, B2, B3, B4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-}
+    {-Bt1, -Bt2, -Bt3*0.75, -Bt4, Bt4, Bt3, Bt2, Bt1, 0, 0, 0, 0, 0, 0, 0},
+    {Bt1, Bt2, Bt3, Bt4, -Bt4, -Bt3*0.75, -Bt2*0.75, -Bt1, 0, 0, 0, 0, 0, 0, 0}
+};
 
 
 /**
@@ -50,9 +54,10 @@ double braitenberg_coefs[2][SENSOR_NUM] = {
  * @param      vel_right    The right velocity
 */
 void braitenberg(double* ps, double &vel_left, double &vel_right){
-    vel_left = 0.0; vel_right = 0.0;
+    vel_left = 0.0; vel_right = 0.0; double norm = 0.0;
+    for (int i = 0; i < SENSOR_NUM; i++) { norm += abs(braitenberg_coefs[0][i]); }
     for (int i = 0; i < SENSOR_NUM; i++) {
-        vel_left  += braitenberg_coefs[0][i]*ps[i]/SENSOR_MAX;
-        vel_right += braitenberg_coefs[1][i]*ps[i]/SENSOR_MAX;
+        vel_left  += braitenberg_coefs[0][i]*BGAIN*pow(ps[i],BPOW)/pow(SENSOR_MAX,BPOW)/norm;
+        vel_right += braitenberg_coefs[1][i]*BGAIN*pow(ps[i],BPOW)/pow(SENSOR_MAX,BPOW)/norm;
     }
 }
