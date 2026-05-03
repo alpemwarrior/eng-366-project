@@ -9,8 +9,8 @@ typedef Eigen::Vector2d vec_2d;
 #define K_FORWARD 1.0
 #define K_NORMAL  5.0
 
-#define K_ANGLE 1    // In s^(-1)
-#define K_V     1    // In m
+#define K_ANGLE 100  // In s^(-1)
+#define K_V     2    // In m
 
 #define R_BLEND 0.3  // In meters 
 #define D_BIAS  0.05 // In meters
@@ -23,12 +23,12 @@ vec_2d path[] = {
     vec_2d(-1,  0),
     vec_2d(6.1, 0),
     vec_2d(6.1, 1.3),
-    vec_2d(-1,  1.3),
-    vec_2d(-1,  2.5),
+    vec_2d(-0.5,  1.3),
+    vec_2d(-0.5,  2.5),
     vec_2d(6.1, 2.5),
     vec_2d(6.1, 3.9),
-    vec_2d(-1,  3.9),
-    vec_2d(-1,  6)
+    vec_2d(-0.5,  3.9),
+    vec_2d(-0.5,  6)
 };
 
 /// @brief Gets projected distance from point z to any given segment (no clamping)
