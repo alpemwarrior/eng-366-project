@@ -19,6 +19,8 @@ function [u, v] = create_vector(path, x, y)
         headingvec = vline/norm(vline)*ktg;
     end
     
+    dp1 = norm(vline)*(1-s); 
+    dp2 = 0;
     headingvec2 = [0 0];
     % If close to end, blend with next segment
     if ((norm(vline)*(1-s)) < 0.5) && (I < (length(path(:,1))-1))
@@ -33,9 +35,10 @@ function [u, v] = create_vector(path, x, y)
         else
             headingvec2 = vline/norm(vline)*ktg;
         end
+        dp2 = norm(vline)*s; 
     end
     dbias = 0.01;
-    w1 = 1/(d(I)+dbias); w2 = 1/(d(I+1)+dbias);
+    w1 = dp1; w2 = 0.5-dp1;
     %w1 = (1-s)*norm(vline); w2 = 1; 
     %sumw = w1+w2;
     %w1 = w1/sumw; w2 = w2/sumw;
