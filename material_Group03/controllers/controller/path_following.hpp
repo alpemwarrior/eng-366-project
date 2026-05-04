@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
 
@@ -9,14 +11,17 @@ typedef Eigen::Vector2d vec_2d;
 #define K_FORWARD 1.0
 #define K_NORMAL  5.0
 
-#define K_ANGLE 100  // In s^(-1)
-#define K_V     2    // In m
+#define K_ANGLE  20   // In s^(-1)
+#define KD_ANGLE 0    //200     
+#define K_V      2    // In m
 
-#define R_BLEND 0.3  // In meters 
+#define R_BLEND 0.5  // In meters 
 #define D_BIAS  0.05 // In meters
 
 #define R_WHEEL 0.11 // In meters
 #define L_AXIS  0.4  // In meters
+
+#define R_FINISH 0.2 // In meters
 
 // Path to follow
 vec_2d path[] = {
@@ -30,6 +35,8 @@ vec_2d path[] = {
     vec_2d(-0.5,  3.9),
     vec_2d(-0.5,  6)
 };
+
+double last_e = 0;
 
 /// @brief Gets projected distance from point z to any given segment (no clamping)
 /// @param segment_idx 
@@ -53,7 +60,7 @@ int getClosestSegment(vec_2d z) {
     double s, dx1, dx2, d; 
     vec_2d vline, x1z, p;
 
-    for (int i = 0; i < NSEGMENTS; i++) {
+    for (unsigned int i = 0; i < NSEGMENTS; i++) {
         vec_2d x1 = path[i];
         vec_2d x2 = path[i+1];
         vline = x2-x1;
@@ -102,6 +109,20 @@ vec_2d getSingleVector(int i, vec_2d z) {
     return direction_vector;
 }
 
+/// @brief Calculates the distance from the projection of z on segment i to the endpoint of segment i
+/// @param i Segment index
+/// @param z Position
+/// @return Distance from the projected point on the line to the end waypoint.
+double getProjectedDistanceToEnd(int i, vec_2d z) {
+    vec_2d x1 = path[i];
+    vec_2d x2 = path[i+1];
+    vec_2d vline = x2-x1;
+    vec_2d x1z = z-x1;
+    vec_2d p = x1 + vline*(vline.dot(x1z)/vline.dot(vline));
+
+    return (p-x2).norm();
+}
+
 /// @brief Generates direction vector given any point z.
 /// @param z 
 /// @return Normalized direction vector
@@ -117,23 +138,26 @@ vec_2d getDirectionVector(vec_2d z) {
     else {
         v1 = getSingleVector(idx_closest, z);  
         v2 = getSingleVector(idx_closest+1, z);
-        d1 = getDistanceToSegment(idx_closest, z)+D_BIAS;
-        d2 = getDistanceToSegment(idx_closest+1, z)+D_BIAS;
+        d1 = getProjectedDistanceToEnd(idx_closest, z);
+        d2 = R_BLEND - d1;
+        //d1 = getDistanceToSegment(idx_closest, z)+D_BIAS;
+        //d2 = getDistanceToSegment(idx_closest+1, z)+D_BIAS;
+        
         vr = (v1*d1 + v2*d2).normalized();
     }
 
     return vr;
 }
 
-/// @brief Calculates the wheel speed (m/s) for path following. 
-/// @param z Current position
-/// @param heading Current heading
-/// @return vec_2d(vr, vl)
-vec_2d getWheelSpeeds(vec_2d z, vec_2d heading) {
-    vec_2d vp, vw;
-    double angle, proj, w, vr;
-    vp = getDirectionVector(z);
 
+void getWheelSpeeds(double* pos, double &left_speed, double &right_speed) {
+    vec_2d z, heading, vp;
+    double angle, proj, w, vr;
+    
+    z = vec_2d(pos[0], pos[1]);
+    heading = vec_2d(cos(pos[2]), sin(pos[2]));
+    
+    vp = getDirectionVector(z);
     
     // Project vp on current heading
     proj = vp.dot(heading);
@@ -148,15 +172,25 @@ vec_2d getWheelSpeeds(vec_2d z, vec_2d heading) {
     // Compute angle (signed)
     angle = SIGN(auxv1.cross(auxv2).z())*acos(proj/vp.norm());
 
-    // Proportional controller to follow heading
-    w = angle*K_ANGLE;
+    // Proportional-derivative controller to follow heading
+    w = angle*K_ANGLE + (angle-last_e)*KD_ANGLE;
+    last_e = angle;
 
     // Translate forward speed, rotational speed to wheel speed
-    vw = vec_2d(
-        (vr-w*L_AXIS/2)/R_WHEEL,
-        (vr+w*L_AXIS/2)/R_WHEEL
-    );
+    left_speed = vr-w*L_AXIS/2;
+    right_speed = vr+w*L_AXIS/2;
 
-    return vw;
+    return;
+}
+
+bool checkIfPathIsFinished(double* pos) {
+  vec_2d z; double d;
+  
+  z = vec_2d(pos[0], pos[1]);
+  d = (z-path[NPOINTS-1]).norm();
+  
+  if (d < R_FINISH) return true;
+  
+  return false;
 }
 

@@ -23,17 +23,21 @@ Response: >5m -> 0, 0m -> 1024
 */
 
 // Side -> Front
-#define BGAIN 50 //10
-#define BPOW 15
+#define BGAIN 40 //10
 
-#define Bt1 -0.5
-#define Bt2 -0.75
+#define PS_TRANSF_LIN_MIN_SENSOR_READING 1000
+#define PS_TRANSF_POW_POWER 20
+
+#define Bt1 -1.25
+#define Bt2 -1.0
 #define Bt3 -0.75   
 #define Bt4 -0.5
+
+#define Bt5 -0.25
 /*
 [V] = [B][S]
 
-Where [S] = [S0 ... S15]^T are the sensor readings (0 m -> 1024, >5 m -> 0)
+Where [S] = [S0 ... S15]^T are the transformed sensor readings (Si = f(PSi)), Si=0.0...1.0
       [B] = [B_0_0 ... B_0_15
              B_1_0 ... B_1_15] are the braitenberg coefficients
       [V] = [Vl, Vr]^T are the left and right wheel speeds
@@ -41,10 +45,25 @@ Where [S] = [S0 ... S15]^T are the sensor readings (0 m -> 1024, >5 m -> 0)
 */
 
 double braitenberg_coefs[2][SENSOR_NUM] = {
-    {-Bt1, -Bt2, -Bt3*0.75, -Bt4, Bt4, Bt3, Bt2, Bt1, 0, 0, 0, 0, 0, 0, 0},
-    {Bt1, Bt2, Bt3, Bt4, -Bt4, -Bt3*0.75, -Bt2*0.75, -Bt1, 0, 0, 0, 0, 0, 0, 0}
+    {-Bt1, -Bt2, -Bt3, -Bt4, Bt4, Bt3, Bt2, Bt1, Bt5, 0, 0, 0, 0, 0, -Bt5},
+    {Bt1, Bt2, Bt3, Bt4, -Bt4, -Bt3, -Bt2, -Bt1, -Bt5, 0, 0, 0, 0, 0, Bt5}
 };
 
+
+/// @brief Transforms sensor reading (0 -> >5m, 1024 -> 0m) to 0 -> >MIN_DIST ... 1.0 -> 0m (for nearby objects)
+/// @param reading Sensor reading
+/// @return Transformed sensor value
+double ps_transf(double reading) {
+    /* Linear implementation */
+    /*if (reading > PS_TRANSF_LIN_MIN_SENSOR_READING) {
+        return (reading - PS_TRANSF_LIN_MIN_SENSOR_READING)/(1024-PS_TRANSF_LIN_MIN_SENSOR_READING);
+    }
+
+    return 0;*/
+    
+    /* Power implementation */
+    return pow(reading, PS_TRANSF_POW_POWER)/pow(1024, PS_TRANSF_POW_POWER);
+}
 
 /**
  * @brief      This function implements the Braitenberg algorithm
@@ -57,7 +76,7 @@ void braitenberg(double* ps, double &vel_left, double &vel_right){
     vel_left = 0.0; vel_right = 0.0; double norm = 0.0;
     for (int i = 0; i < SENSOR_NUM; i++) { norm += abs(braitenberg_coefs[0][i]); }
     for (int i = 0; i < SENSOR_NUM; i++) {
-        vel_left  += braitenberg_coefs[0][i]*BGAIN*pow(ps[i],BPOW)/pow(SENSOR_MAX,BPOW)/norm;
-        vel_right += braitenberg_coefs[1][i]*BGAIN*pow(ps[i],BPOW)/pow(SENSOR_MAX,BPOW)/norm;
+        vel_left  += braitenberg_coefs[0][i]*BGAIN*ps_transf(ps[i])/norm;
+        vel_right += braitenberg_coefs[1][i]*BGAIN*ps_transf(ps[i])/norm;
     }
 }

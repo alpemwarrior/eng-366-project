@@ -12,30 +12,33 @@
 #include "pioneer_interface/pioneer_interface.hpp" // contains the NUM_SENSORS constant 
 #include "braitenberg.hpp" // you may want to use the braitenberg function to control the robot in some cases
 
-#define THRESHOLD   1010  // Arbitrary threshold value for the proximity sensors
+#include "path_following.hpp" // path following
 
+#define THRESHOLD   1010  // Arbitrary threshold value for the proximity sensors
 
 //////////////////////
 // Global variables //
 //////////////////////
 
 // enum used to store the current behavior
-enum basicBehaviors {GOFORWARD, STOP} behavior;
+enum basicBehaviors {START, FOLLOW_PATH, STOP} behavior;
+double position[4];
 
 ////////////////////////
 // Behavior Functions //
 ////////////////////////
-
-void goForwardBehavior(double* ps_values, double &vel_left, double &vel_right){
-  vel_left = 1.0;
-  vel_right = 1.0;
-  return;
-}
-
-void stopBehavior(double &vel_left, double &vel_right){
+void stopBehavior(double &vel_left, double &vel_right) {
   vel_left = 0;
   vel_right = 0;
-  return;
+}
+
+void followPathBehavior(double* ps, double* position, double &vel_left, double &vel_right) {
+  double lws_p, rws_p, lws_b, rws_b;
+  
+  getWheelSpeeds(position, lws_p, rws_p);
+  braitenberg(ps, lws_b, rws_b);
+  vel_left = lws_p + lws_b;
+  vel_right = rws_p + rws_b;
 }
 
 ///////////////////////
@@ -48,22 +51,32 @@ void stopBehavior(double &vel_left, double &vel_right){
  * @param[out] vel_lef left wheels velocity
  * @param[out] vel_right right wheels velocity
 */
-void fsm(double* ps_values, double &vel_left, double &vel_right){
+void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right){
 
   switch(behavior){
+  
+      case START:                   
+        printf("Starting FSM");
+        behavior = FOLLOW_PATH;
+        // Do not break, execute FOLLOW_PATH immediately
 
-      case GOFORWARD:
+      case FOLLOW_PATH:
         
-        // Perform the goForward behavior
-        goForwardBehavior(ps_values, vel_left, vel_right);
-
-        // Check for transition criteria 
-        for(int i=0; i<NUM_SENSORS; i++){
-          if (ps_values[i]>THRESHOLD){
-            printf("Obstacle detected, stopping...\n");
+        // Follow path if location is available
+        if( robot->get_ground_truth_pose(position) ) {
+          followPathBehavior(ps_values, position, vel_left, vel_right);
+          
+          // Transition criterion
+          if (checkIfPathIsFinished(position)) {
+            printf("Finished path");
             behavior = STOP;
           }
+          
+        } else {
+          printf("Ground truth is disabled, press 'G'\n");
+          stopBehavior(vel_left, vel_right);
         }
+        
         break;
 
       case STOP:
