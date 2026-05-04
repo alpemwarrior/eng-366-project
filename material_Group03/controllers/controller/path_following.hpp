@@ -7,12 +7,12 @@ typedef Eigen::Vector2d vec_2d;
 
 #define NPOINTS (sizeof(path)/sizeof(path[0]))
 #define NSEGMENTS (NPOINTS-1)
+
 #define SIGN(x) ((x > 0.0) - (x < 0.0))
 #define K_FORWARD 1.0
 #define K_NORMAL  5.0
 
 #define K_ANGLE  20   // In s^(-1)
-#define KD_ANGLE 0    //200     
 #define K_V      2    // In m
 
 #define R_BLEND 0.5  // In meters 
@@ -21,7 +21,7 @@ typedef Eigen::Vector2d vec_2d;
 #define R_WHEEL 0.11 // In meters
 #define L_AXIS  0.4  // In meters
 
-#define R_FINISH 0.2 // In meters
+#define R_FINISH 0.2 // Radius within last waypoint to consider the mission to be completed, in meters
 
 // Path to follow
 vec_2d path[] = {
@@ -150,6 +150,10 @@ vec_2d getDirectionVector(vec_2d z) {
 }
 
 
+/// @brief Returns wheel speeds (m/s) for path following
+/// @param pos          Estimated position
+/// @param left_speed   Left wheel speed (reference)
+/// @param right_speed  Right wheel speed (reference)
 void getWheelSpeeds(double* pos, double &left_speed, double &right_speed) {
     vec_2d z, heading, vp;
     double angle, proj, w, vr;
@@ -172,9 +176,8 @@ void getWheelSpeeds(double* pos, double &left_speed, double &right_speed) {
     // Compute angle (signed)
     angle = SIGN(auxv1.cross(auxv2).z())*acos(proj/vp.norm());
 
-    // Proportional-derivative controller to follow heading
-    w = angle*K_ANGLE + (angle-last_e)*KD_ANGLE;
-    last_e = angle;
+    // Proportional controller to follow heading
+    w = angle*K_ANGLE;
 
     // Translate forward speed, rotational speed to wheel speed
     left_speed = vr-w*L_AXIS/2;

@@ -14,15 +14,12 @@
 
 #include "path_following.hpp" // path following
 
-#define THRESHOLD   1010  // Arbitrary threshold value for the proximity sensors
-
 //////////////////////
 // Global variables //
 //////////////////////
 
 // enum used to store the current behavior
 enum basicBehaviors {START, FOLLOW_PATH, STOP} behavior;
-double position[4];
 
 ////////////////////////
 // Behavior Functions //
@@ -44,6 +41,8 @@ void followPathBehavior(double* ps, double* position, double &vel_left, double &
 ///////////////////////
 // Main FSM function //
 ///////////////////////
+
+double position[4]; // To be removed once odometry is implemented
 
 /**
  * @brief Finite State Machine that manages the robot's behavior

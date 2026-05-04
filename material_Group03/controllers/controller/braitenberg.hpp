@@ -2,6 +2,9 @@
 
 #include "pioneer_interface/pioneer_interface.hpp"
 
+#define BGAIN 40 //10
+#define PS_TRANSF_POW_POWER 20
+
 #define SENSOR_NUM 16
 #define SENSOR_MAX 1024
 #define SENSOR_MAX2 (1024*1024)
@@ -23,17 +26,12 @@ Response: >5m -> 0, 0m -> 1024
 */
 
 // Side -> Front
-#define BGAIN 40 //10
-
-#define PS_TRANSF_LIN_MIN_SENSOR_READING 1000
-#define PS_TRANSF_POW_POWER 20
-
+#define Bt5 -0.25
 #define Bt1 -1.25
 #define Bt2 -1.0
 #define Bt3 -0.75   
 #define Bt4 -0.5
 
-#define Bt5 -0.25
 /*
 [V] = [B][S]
 
@@ -43,7 +41,6 @@ Where [S] = [S0 ... S15]^T are the transformed sensor readings (Si = f(PSi)), Si
       [V] = [Vl, Vr]^T are the left and right wheel speeds
 
 */
-
 double braitenberg_coefs[2][SENSOR_NUM] = {
     {-Bt1, -Bt2, -Bt3, -Bt4, Bt4, Bt3, Bt2, Bt1, Bt5, 0, 0, 0, 0, 0, -Bt5},
     {Bt1, Bt2, Bt3, Bt4, -Bt4, -Bt3, -Bt2, -Bt1, -Bt5, 0, 0, 0, 0, 0, Bt5}
@@ -54,13 +51,6 @@ double braitenberg_coefs[2][SENSOR_NUM] = {
 /// @param reading Sensor reading
 /// @return Transformed sensor value
 double ps_transf(double reading) {
-    /* Linear implementation */
-    /*if (reading > PS_TRANSF_LIN_MIN_SENSOR_READING) {
-        return (reading - PS_TRANSF_LIN_MIN_SENSOR_READING)/(1024-PS_TRANSF_LIN_MIN_SENSOR_READING);
-    }
-
-    return 0;*/
-    
     /* Power implementation */
     return pow(reading, PS_TRANSF_POW_POWER)/pow(1024, PS_TRANSF_POW_POWER);
 }
