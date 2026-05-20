@@ -2,3 +2,5 @@ material_Group03/controllers/controller/console.txt
 material_Group03/controllers/supervisor/data/collisions.csv
 material_Group03/controllers/supervisor/data/ground_truth.csv
 material_Group03/controllers/controller/build/*
+material_Group03/scripts/matlab/w1/temperature.asv
+material_Group03/scripts/matlab/w1/plot_trajectory.asv
