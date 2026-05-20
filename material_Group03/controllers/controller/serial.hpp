@@ -1,3 +1,5 @@
+// IMPLEMENTED BY: Pol Rius (423483)
+
 #pragma once 
 
 #include "pioneer_interface/pioneer_interface.hpp"
@@ -23,6 +25,15 @@ void print_array(double* array){
  * @return     signal strength of the received packet, 0.0 if no packet was received
 */
 double serial_get_data(Pioneer& robot, double* data){
+    if (serial_get_queue_length() > 0) {
+        // Discard all accumulated messages
+        while (serial_get_queue_length() > 1) {
+            serial_next_msg();
+        }
+
+        data = serial_read_msg();
+        return serial_get_signal_strength();
+    }
 
     // TODO: Implement this function
     // Hint: use the following functions from the Pioneer class:

@@ -19,6 +19,10 @@ int main(int argc, char **argv) {
   Pioneer robot = Pioneer(argc, argv);
   robot.init();
 
+  // Initialize temperature .csv
+  std::string f_temperature = "temperature.csv";
+  int         f_temperature_cols = init_csv(f_temperature, "time, sensor_id, sensor_x, sensor_y, temp_in, temp_out,"); // <-- don't forget the comma at the end of the string!!
+
   // Initialize an example log file
   std::string f_example = "example.csv";
   int         f_example_cols = init_csv(f_example, "time, light, accx, accy, accz,"); // <-- don't forget the comma at the end of the string!!
@@ -60,6 +64,10 @@ int main(int argc, char **argv) {
 
     // Log the time and light and IMU data in a csv file 
     log_csv(f_example, f_example_cols, time, light, imu[0], imu[1], imu[2]);
+
+    if (signal_strength != 0.0) {
+      log_csv(f_temperature, time, data[0], data[1], data[2], data[3], data[4]);
+    }
 
   }
 

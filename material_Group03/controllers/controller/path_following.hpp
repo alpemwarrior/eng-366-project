@@ -1,3 +1,5 @@
+// IMPLEMENTED BY: Pol Rius (423483)
+
 #pragma once
 
 #include <Eigen/Geometry>
