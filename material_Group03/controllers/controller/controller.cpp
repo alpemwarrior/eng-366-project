@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
     log_csv(f_example, f_example_cols, time, light, imu[0], imu[1], imu[2]);
 
     if (signal_strength != 0.0) {
-      log_csv(f_temperature, time, data[0], data[1], data[2], data[3], data[4]);
+      log_csv(f_temperature, f_temperature_cols, time, data[0], data[1], data[2], data[3], data[4]);
     }
 
   }

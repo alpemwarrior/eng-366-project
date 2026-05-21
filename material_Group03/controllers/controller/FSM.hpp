@@ -30,13 +30,14 @@ void stopBehavior(double &vel_left, double &vel_right) {
   vel_right = 0;
 }
 
-void followPathBehavior(double* ps, double* position, double &vel_left, double &vel_right) {
+int followPathBehavior(double* ps, double* position, double &vel_left, double &vel_right) {
   double lws_p, rws_p, lws_b, rws_b;
   
-  getWheelSpeeds(position, lws_p, rws_p);
+  int wp = getWheelSpeeds(position, lws_p, rws_p);
   braitenberg(ps, lws_b, rws_b);
-  vel_left = lws_p + lws_b;
-  vel_right = rws_p + rws_b;
+  vel_left = clipWheelSpeed(lws_p + lws_b);
+  vel_right = clipWheelSpeed(rws_p + rws_b);
+  return wp;
 }
 
 ///////////////////////
@@ -44,6 +45,7 @@ void followPathBehavior(double* ps, double* position, double &vel_left, double &
 ///////////////////////
 
 double position[4]; // To be removed once odometry is implemented
+int wp_last, wp;
 
 /**
  * @brief Finite State Machine that manages the robot's behavior
@@ -56,19 +58,24 @@ void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right)
   switch(behavior){
   
       case START:                   
-        printf("Starting FSM");
+        printf("Starting FSM\n");
         behavior = FOLLOW_PATH;
+        wp_last = -1;
         // Do not break, execute FOLLOW_PATH immediately
 
       case FOLLOW_PATH:
         
         // Follow path if location is available
         if( robot->get_ground_truth_pose(position) ) {
-          followPathBehavior(ps_values, position, vel_left, vel_right);
-          
+          wp = followPathBehavior(ps_values, position, vel_left, vel_right);
+          if (wp_last != wp) {
+            printf("Following segment %d (waypoints %d -> %d)\n", wp, wp, wp+1);
+            wp_last = wp;
+          }
+
           // Transition criterion
           if (checkIfPathIsFinished(position)) {
-            printf("Finished path");
+            printf("Finished path following\n");
             behavior = STOP;
           }
           

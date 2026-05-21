@@ -5,7 +5,7 @@
 
 clear all; clear figure; close all;
 
-%% Calculation
+%% Loading data
 
 % Contants
 qh = 0.1; % [W]
@@ -18,23 +18,39 @@ times = M(:,1);
 temperatures_in = M(:,5); 
 temperatures_out = M(:,6);
 
-% From this point onwards the system is considered to be in Steady-State
-% Find index corresponding to this time
-t_min = 200;
-[minm, I] = min(abs(times-t_min));
+
+%% Calculation
+
+R =100; % [°C/W]
+Rtol = 1e-3;
 
 
-slice = temperatures_in-temperatures_out;
-slice = slice(I:end);
-ssv = mean(slice);
+while true
+    Y = temperatures_in-temperatures_out;
+    X = 1-exp(-times/(R*C));
+    
+    c = X\Y;
+    Rnew = c/qh;
 
-% Steady-state value is qh*R
-R = ssv/qh
+    if abs(Rnew-R) < Rtol
+        R = Rnew;
+        break;
+    else
+        R = Rnew;
+    end
+end
+
+R
+mean(temperatures_out)
 
 %% Visualization
-%plot(times, temperatures_in, 'x');
-%xline(t_min);
-%yline(R*qh+T_o(1))
+npts = 100;
+xeval = linspace(1, max(times), npts);
+yfit = mean(temperatures_out) + qh*R*(1-exp(-xeval/(R*C)));
 
+figure(1);
+hold on;
+plot(times, temperatures_in, 'x');
+plot(xeval, yfit);
 
 

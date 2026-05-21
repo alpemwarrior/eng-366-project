@@ -25,6 +25,8 @@ typedef Eigen::Vector2d vec_2d;
 
 #define R_FINISH 0.2 // Radius within last waypoint to consider the mission to be completed, in meters
 
+#define MAX_WHEEL_SPEED 6.4
+
 // Path to follow
 vec_2d path[] = {
     vec_2d(-1,  0),
@@ -39,6 +41,10 @@ vec_2d path[] = {
 };
 
 double last_e = 0;
+
+double clipWheelSpeed(double speed) {
+    return (speed > MAX_WHEEL_SPEED) ? MAX_WHEEL_SPEED : speed;
+}
 
 /// @brief Gets projected distance from point z to any given segment (no clamping)
 /// @param segment_idx 
@@ -127,12 +133,14 @@ double getProjectedDistanceToEnd(int i, vec_2d z) {
 
 /// @brief Generates direction vector given any point z.
 /// @param z 
+/// @param wp Pointer to store current waypoint
 /// @return Normalized direction vector
-vec_2d getDirectionVector(vec_2d z) {
+vec_2d getDirectionVector(vec_2d z, int* wp) {
     vec_2d x2, vr, v1, v2;
     double d1, d2;
     int idx_closest = getClosestSegment(z);
     x2 = path[idx_closest+1];
+    *wp = idx_closest;
 
     if (((x2-z).norm() > R_BLEND) || (idx_closest == (NSEGMENTS-1))) {
         vr = getSingleVector(idx_closest, z);     
@@ -156,14 +164,16 @@ vec_2d getDirectionVector(vec_2d z) {
 /// @param pos          Estimated position
 /// @param left_speed   Left wheel speed (reference)
 /// @param right_speed  Right wheel speed (reference)
-void getWheelSpeeds(double* pos, double &left_speed, double &right_speed) {
+/// @return Current waypoint
+int getWheelSpeeds(double* pos, double &left_speed, double &right_speed) {
     vec_2d z, heading, vp;
     double angle, proj, w, vr;
+    int wp;
     
     z = vec_2d(pos[0], pos[1]);
     heading = vec_2d(cos(pos[2]), sin(pos[2]));
     
-    vp = getDirectionVector(z);
+    vp = getDirectionVector(z, &wp);
     
     // Project vp on current heading
     proj = vp.dot(heading);
@@ -182,10 +192,10 @@ void getWheelSpeeds(double* pos, double &left_speed, double &right_speed) {
     w = angle*K_ANGLE;
 
     // Translate forward speed, rotational speed to wheel speed
-    left_speed = vr-w*L_AXIS/2;
+    left_speed =  vr-w*L_AXIS/2;
     right_speed = vr+w*L_AXIS/2;
 
-    return;
+    return wp;
 }
 
 bool checkIfPathIsFinished(double* pos) {
