@@ -80,10 +80,10 @@ bool kal_check_nan(const MatX& m){
 // *********************
 
 // track last heading
-static double last_mu_theta = mu(2);
+static double last_mu_theta = 0.0;
 
 // Process noise -> accounts for unmodeled physical effects, like wheel slip 
-static const double KAL_SIGMA_XY_PER_M    = 0.05;  // [m/m]   positional slip
+static const double KAL_SIGMA_XY_PER_M    = 0.2;  // [m/m]   positional slip
 static const double KAL_SIGMA_THETA_PER_M = 0.1;  // [rad/m] heading slip
 
 // Measurement noise
@@ -264,40 +264,68 @@ void kal_node_correction(double node_x, double node_y, double signal_strength) {
     }
 }
 
-#define WALL_CORRECTION_THRESHOLD 1
+#define WALL_CORRECTION_THRESHOLD 1.0
+#define ANGLE_DIF (2*M_PI/9)
+#define PS_TO_DIST(x) ((1024.0 - x)*5.0/1024.0)
 
-// kal_wall_heading_correction: additional correction, as we know wall positions in x relative to start position
-void kal_wall_heading_correction(double expected_heading) {
+bool getWallHeadingError(Pioneer* robot, double* rheading) {
     // check if EKF estimate places robot near a known wall
     bool near_front = fabs(mu(0) - 7.0)  < WALL_CORRECTION_THRESHOLD;
     bool near_back  = fabs(mu(0) - (-1.3)) < WALL_CORRECTION_THRESHOLD;
+    double r1, r2, alpha, c;
+    double* ps;
 
     if(!near_front && !near_back) {
+        return false;
+    }
+
+    if (fabs(mu(2) - M_PI_2) > (M_PI/6)) {
+        return false;
+    }
+
+    ps = robot->get_proximity();
+
+    if (near_front) {
+        r1 = PS_TO_DIST(ps[6]); r2 = PS_TO_DIST(ps[9]);
+
+        c = sqrt(r1*r1 + r2*r2 - 2*r1*r2*cos(2*ANGLE_DIF));
+        alpha = asin(r1*sin(2*ANGLE_DIF)/c);
+        *rheading = -M_PI_2 + alpha + ANGLE_DIF;
+    }
+
+    return true;
+}
+
+#define KAL_SIGMA_WALL_HEADING 0.05
+
+// kal_wall_heading_correction: additional correction, as we know wall positions in x relative to start position
+void kal_wall_heading_correction(Pioneer* robot) {
+    // check if EKF estimate places robot near a known wall
+    double measured_heading;
+    
+    if (!getWallHeadingError(robot, &measured_heading)) {
         return;
     }
 
-    // only correct if heading is roughly aligned — robot not mid-turn
-    double heading_err = normalize_angle(expected_heading - mu(2));
-    if(fabs(heading_err) > M_PI/4.0) return;
+    measured_heading += M_PI_2;
+
+    double heading_err = normalize_angle(measured_heading - mu(2));
 
     Eigen::Matrix<double,1,3> H_t;
     H_t(0,0) = 0.0; H_t(0,1) = 0.0; H_t(0,2) = 1.0;
 
     Eigen::Matrix<double,1,1> Q_t;
-    Q_t(0,0) = 0.1 * 0.1;
+    Q_t(0,0) = KAL_SIGMA_WALL_HEADING * KAL_SIGMA_WALL_HEADING;
 
-    Eigen::Matrix<double,3,1> K_t = sigma * H_t.transpose() * 
+    Eigen::Matrix<double,3,1> K_t = sigma * H_t.transpose() *
         (H_t * sigma * H_t.transpose() + Q_t).inverse();
+
 
     mu    = mu + K_t * heading_err;
     mu(2) = normalize_angle(mu(2));
     sigma = (I - K_t * H_t) * sigma;
 
-    printf("Correcting with wall\n");
-
-    
-    // check for NaN
-    if(kal_check_nan(sigma)) {
+    if (kal_check_nan(sigma)) {
         sigma = Mat::Identity() * 0.01;
     }
 }

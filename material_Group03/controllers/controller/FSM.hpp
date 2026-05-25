@@ -13,6 +13,7 @@
 #include "pioneer_interface/pioneer_interface.hpp" // contains the NUM_SENSORS constant 
 #include "braitenberg.hpp" // you may want to use the braitenberg function to control the robot in some cases
 
+#include "kalman.hpp"
 #include "path_following.hpp" // path following
 #include "signal_analysis.hpp"
 
@@ -72,7 +73,6 @@ void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right)
       case FOLLOW_PATH:
         compute_odom(robot, &ds, &dth);
         kal_predict(ds, dth);
-        kal_wall_heading_correction(3.1415/2);
 
         position[0] = mu(0);
         position[1] = mu(1);
@@ -84,8 +84,8 @@ void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right)
         robot->hide_state_estimate_marker();
         robot->set_state_estimate_marker(position[0], position[1], position[2], position[3]);
 
-        //if (robot->get_ground_truth_pose(position)) {
-        if (1) {
+        if (robot->get_ground_truth_pose(position)) {
+        //if (1) {
           lightLightSensor.update(robot, position[3], position[0], position[1]);
 
           // Follow path if location is available
@@ -95,9 +95,8 @@ void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right)
             wp_last = wp;
           }
 
-          if (getWallHeadingError(robot, &wallheadingerror) ) {
-            printf("Wall error is %f rad (%f degrees) \n", wallheadingerror, wallheadingerror*180/M_PI);
-          }
+          kal_wall_heading_correction(robot);
+          printf("%f\n", mu(1));
 
           // Transition criterion
           if (checkIfPathIsFinished(position)) {

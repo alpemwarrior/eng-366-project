@@ -13,7 +13,7 @@ build/release/controller.o: controller.cpp \
  /usr/local/webots/include/controller/cpp/webots/Emitter.hpp \
  /usr/local/webots/include/controller/cpp/webots/Receiver.hpp \
  /usr/local/webots/include/controller/cpp/webots/Keyboard.hpp \
- ../../libraries/utils/log_data.hpp braitenberg.hpp odometry.hpp \
+ ../../libraries/utils/log_data.hpp braitenberg.hpp odometry.hpp FSM.hpp \
  kalman.hpp /usr/include/eigen3/Eigen/Dense \
  /usr/include/eigen3/Eigen/Core \
  /usr/include/eigen3/Eigen/src/Core/util/DisableStupidWarnings.h \
@@ -186,5 +186,5 @@ build/release/controller.o: controller.cpp \
  /usr/include/eigen3/Eigen/src/Eigenvalues/GeneralizedEigenSolver.h \
  /usr/include/eigen3/Eigen/src/Eigenvalues/./RealQZ.h \
  /usr/include/eigen3/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h \
- FSM.hpp path_following.hpp /usr/include/eigen3/Eigen/Geometry serial.hpp \
- signal_analysis.hpp ../../libraries/kiss_fft/kiss_fft.h
+ path_following.hpp /usr/include/eigen3/Eigen/Geometry \
+ signal_analysis.hpp serial.hpp
