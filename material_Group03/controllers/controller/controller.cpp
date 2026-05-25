@@ -1,17 +1,15 @@
 // Controller for the robot robot
 
-// Provided libraries 
 #include "pioneer_interface/pioneer_interface.hpp"
 #include "utils/log_data.hpp"
-
-// Files to implement your solutions  
+  
 #include "braitenberg.hpp"
 #include "odometry.hpp"
-#include "kalman.hpp"
+//#include "kalman.hpp"
 #include "FSM.hpp"
 #include "serial.hpp"
 #include "signal_analysis.hpp"
-#include "path_following.hpp"
+// #include "path_following.hpp"
 
 int main(int argc, char **argv) {
 
@@ -19,25 +17,47 @@ int main(int argc, char **argv) {
   Pioneer robot = Pioneer(argc, argv);
   robot.init();
 
-  // Initialize temperature .csv
-  std::string f_temperature = "temperature.csv";
-  int         f_temperature_cols = init_csv(f_temperature, "time, sensor_id, sensor_x, sensor_y, temp_in, temp_out,"); // <-- don't forget the comma at the end of the string!!
+  //WP3: LightSensor initialization (necessary even after integration)
+  LightSensor lightLightSensor;
 
   // Initialize an example log file
   std::string f_example = "example.csv";
-  int         f_example_cols = init_csv(f_example, "time, light, accx, accy, accz,"); // <-- don't forget the comma at the end of the string!!
+  int f_example_cols = init_csv(f_example, "time, light, accx, accy, accz,");
+
+  //WP3: Trajectory logging for offline plot (necessary even after integration)
+  std::string f_traj = "trajectory.csv";
+  int f_traj_cols = init_csv(f_traj, "time,x,y,");
 
   while (robot.step() != -1) {
 
     //////////////////////////////
     // Measurements acquisition //
     //////////////////////////////
-    
+   
     double  time = robot.get_time();              // Current time in seconds 
-    double* ps_values = robot.get_proximity();    // Measured proximity sensor values (16 values)
+    double* ps_values = robot.get_proximity();    // Measured proximity SensorLightSensor values (16 values)
     double* wheel_rot = robot.get_encoders();     // Wheel rotations (left, right)
     double  light = robot.get_light_intensity();  // Light intensity
-    double* imu = robot.get_imu();                // IMU with accelerations and rotation rates (acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z)
+    double* imu = robot.get_imu();                // IMU with accelerations and rotation rates
+
+    // ==================== WP3: LIGHT ANALYSIS ====================
+
+    //WP3:(only for testing) Ground truth pose - can be commented when using keyboard controller
+    double x = 0.0, y = 0.0;
+    double pose[4] = {0.0, 0.0, 0.0, 0.0};
+
+    bool got_pose = robot.get_ground_truth_pose(pose);
+
+    if (got_pose) {
+        x = pose[0];
+        y = pose[1];
+    }
+
+    //WP3: Log trajectory for offline plot (necessary even after integration)
+    log_csv(f_traj, f_traj_cols, time, x, y);
+
+    //WP3: Call to LighhtLightSensor (necessary even after integration)
+    lightLightSensor.update(robot, time, x, y);
 
     ////////////////////
     // Implementation //
@@ -47,16 +67,16 @@ int main(int argc, char **argv) {
     double data[PACKET_SIZE];
     double signal_strength = serial_get_data(robot, data);
 
-    // NAVIGATION
+    // NAVIGATION - WP1
+    //(not required for WP3 testing, uncomment when integration)
     double lws = 0.0, rws = 0.0;  // left and right wheel speeds
-
-    fsm(ps_values, &robot, lws, rws);     // finite state machine 
-    
+    fsm(ps_values, lws, rws);     // finite state machine 
     robot.set_motors_velocity(lws, rws); // set the wheel velocities
 
-    // STATE ESTIMATION MARKER (green arrow in simulation)
-    robot.hide_state_estimate_marker(); // this hides the marker in the simulation
-    robot.set_state_estimate_marker(0.0, 0.0, time, time); // rotate in place for now, input your state estimate here for visualization in the simulation!
+    // STATE ESTIMATION MARKER - WP2
+    //(not required for WP3 testing, uncomment when integration)
+    robot.hide_state_estimate_marker(); 
+    robot.set_state_estimate_marker(0.0, 0.0, time, time);
 
     //////////////////
     // Data logging //
@@ -64,11 +84,6 @@ int main(int argc, char **argv) {
 
     // Log the time and light and IMU data in a csv file 
     log_csv(f_example, f_example_cols, time, light, imu[0], imu[1], imu[2]);
-
-    if (signal_strength != 0.0) {
-      log_csv(f_temperature, time, data[0], data[1], data[2], data[3], data[4]);
-    }
-
   }
 
   // Enter here exit cleanup code.
