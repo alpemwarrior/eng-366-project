@@ -79,6 +79,8 @@ bool kal_check_nan(const MatX& m){
 // ----- CONSTANTS -----
 // *********************
 
+static double last_mu_theta = 0.0;
+
 // Process noise -> accounts for unmodeled physical effects, like wheel slip 
 static const double KAL_SIGMA_XY_PER_M    = 0.05;  // [m/m]   positional slip
 static const double KAL_SIGMA_THETA_PER_M = 0.03;  // [rad/m] heading slip
@@ -119,6 +121,9 @@ void kal_init() {
 
 // kal_predict: implements prediction step of EKF algorithm 
 void kal_predict(double ds, double dtheta) {
+    // save mu_theta for next function call
+    last_mu_theta = mu(2);
+
     // use midpoint heading for prediction
     double theta_mid = mu(2) + dtheta * 0.5; 
 
@@ -159,7 +164,6 @@ void kal_gyro_correction(double gyro_z, double dt) {
     double z_meas  = gyro_z * dt;
 
     // static variables to track gyro-integrated heading across function calls
-    static double last_mu_theta = 0.0;
     static bool gyro_init = false;
 
     // on first call, initialise gyro and gyro_heading 
@@ -192,9 +196,6 @@ void kal_gyro_correction(double gyro_z, double dt) {
 
     // Step 5 of EKF algorithm 
     sigma = (I - K_t * H_t) * sigma;
-    
-    // save mu_theta for next function call
-    last_mu_theta = mu(2);
 
     // check for NaN values
     if(kal_check_nan(sigma)) {

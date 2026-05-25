@@ -3,7 +3,7 @@
 
 #include "pioneer_interface/pioneer_interface.hpp"
 
-#define BGAIN 40 //10
+#define BGAIN 60 //40
 #define PS_TRANSF_POW_POWER 20
 
 #define SENSOR_NUM 16

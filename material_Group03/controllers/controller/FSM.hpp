@@ -46,6 +46,7 @@ int followPathBehavior(double* ps, double* position, double &vel_left, double &v
 
 double position[4]; // To be removed once odometry is implemented
 int wp_last, wp;
+double ds, dth;
 
 /**
  * @brief Finite State Machine that manages the robot's behavior
@@ -59,31 +60,37 @@ void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right)
   
       case START:                   
         printf("Starting FSM\n");
+        kal_init();
+        odom_init(robot);
         behavior = FOLLOW_PATH;
         wp_last = -1;
         // Do not break, execute FOLLOW_PATH immediately
 
       case FOLLOW_PATH:
-        
-        // Follow path if location is available
-        if( robot->get_ground_truth_pose(position) ) {
-          wp = followPathBehavior(ps_values, position, vel_left, vel_right);
-          if (wp_last != wp) {
-            printf("Following segment %d (waypoints %d -> %d)\n", wp, wp, wp+1);
-            wp_last = wp;
-          }
+        compute_odom(robot, &ds, &dth);
+        kal_predict(ds, dth);
 
-          // Transition criterion
-          if (checkIfPathIsFinished(position)) {
-            printf("Finished path following\n");
-            behavior = STOP;
-          }
-          
-        } else {
-          printf("Ground truth is disabled, press 'G'\n");
-          stopBehavior(vel_left, vel_right);
+        position[0] = mu(0);
+        position[1] = mu(1);
+        position[2] = mu(2);
+        position[3] = robot->get_time();
+
+        robot->hide_state_estimate_marker();
+        robot->set_state_estimate_marker(position[0], position[1], position[2], position[3]);
+
+        // Follow path if location is available
+        wp = followPathBehavior(ps_values, position, vel_left, vel_right);
+        if (wp_last != wp) {
+          printf("Following segment %d (waypoints %d -> %d)\n", wp, wp, wp+1);
+          wp_last = wp;
         }
-        
+
+        // Transition criterion
+        if (checkIfPathIsFinished(position)) {
+          printf("Finished path following\n");
+          behavior = STOP;
+        }
+      
         break;
 
       case STOP:

@@ -19,15 +19,15 @@ static double odom_prev_right = 0.0;
 static bool   odom_initialised = false;
 
 // init_odom: called once after robot interface ready to initialise odometry
-void odom_init(Pioneer& robot) {
-    double* enc    = robot.get_encoders();
+void odom_init(Pioneer* robot) {
+    double* enc    = robot->get_encoders();
     odom_prev_left  = enc[0];
     odom_prev_right = enc[1];
     odom_initialised = true;
 }
 
 // compute_odom: called periodically to update odometry estimates
-void compute_odom(Pioneer& robot, double* ds_out, double* dth_out) {
+void compute_odom(Pioneer* robot, double* ds_out, double* dth_out) {
     // check odometry has been initialised, if not, initialise and set velocities to zero
     if(!odom_initialised){
         odom_init(robot);
@@ -37,7 +37,7 @@ void compute_odom(Pioneer& robot, double* ds_out, double* dth_out) {
     }
 
     // get current wheel encoder values
-    double* enc = robot.get_encoders();
+    double* enc = robot->get_encoders();
     double current_left  = enc[0];
     double current_right = enc[1];
 

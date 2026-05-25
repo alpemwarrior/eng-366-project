@@ -12,9 +12,9 @@ typedef Eigen::Vector2d vec_2d;
 
 #define SIGN(x) ((x > 0.0) - (x < 0.0))
 #define K_FORWARD 1.0
-#define K_NORMAL  5.0
+#define K_NORMAL  7.0
 
-#define K_ANGLE  20   // In s^(-1)
+#define K_ANGLE  20//20   // In s^(-1)
 #define K_V      2    // In m
 
 #define R_BLEND 0.5  // In meters 
@@ -30,8 +30,10 @@ typedef Eigen::Vector2d vec_2d;
 // Path to follow
 vec_2d path[] = {
     vec_2d(-1,  0),
-    vec_2d(6.1, 0),
-    vec_2d(6.1, 1.3),
+    vec_2d(6.0, 0.1),
+    vec_2d(6.15, 0.15),
+    vec_2d(6.2, 0.3),
+    vec_2d(6.2, 1.3),
     vec_2d(-0.5,  1.3),
     vec_2d(-0.5,  2.5),
     vec_2d(6.1, 2.5),
