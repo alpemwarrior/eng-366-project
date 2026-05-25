@@ -79,6 +79,9 @@ bool kal_check_nan(const MatX& m){
 // ----- CONSTANTS -----
 // *********************
 
+// track last heading
+static double last_mu_theta = mu(2);
+
 // Process noise -> accounts for unmodeled physical effects, like wheel slip 
 static const double KAL_SIGMA_XY_PER_M    = 0.05;  // [m/m]   positional slip
 static const double KAL_SIGMA_THETA_PER_M = 0.03;  // [rad/m] heading slip
@@ -112,13 +115,18 @@ static inline double normalize_angle(double angle) {
 void kal_init() {
     mu  = Vec::Zero();
     sigma = Mat::Zero();
-    sigma(0,0) = 0.01 * 0.01;   // ~1 cm std-dev on x
-    sigma(1,1) = 0.01 * 0.01;   // ~1 cm std-dev on y
-    sigma(2,2) = 0.001 * 0.001; // ~0.06 deg std-dev on heading
+
+    // small initial uncertainty, robot starts at origin facing x axis
+    sigma(0,0) = 1e-6;   
+    sigma(1,1) = 1e-6;   
+    sigma(2,2) = 1e-6; 
 }
 
 // kal_predict: implements prediction step of EKF algorithm 
 void kal_predict(double ds, double dtheta) {
+    // save mu_theta for next function call
+    last_mu_theta = mu(2);
+
     // use midpoint heading for prediction
     double theta_mid = mu(2) + dtheta * 0.5; 
 
@@ -158,8 +166,6 @@ void kal_gyro_correction(double gyro_z, double dt) {
     // measured change in heading 
     double z_meas  = gyro_z * dt;
 
-    // static variables to track gyro-integrated heading across function calls
-    static double last_mu_theta = 0.0;
     static bool gyro_init = false;
 
     // on first call, initialise gyro and gyro_heading 
@@ -192,9 +198,6 @@ void kal_gyro_correction(double gyro_z, double dt) {
 
     // Step 5 of EKF algorithm 
     sigma = (I - K_t * H_t) * sigma;
-    
-    // save mu_theta for next function call
-    last_mu_theta = mu(2);
 
     // check for NaN values
     if(kal_check_nan(sigma)) {
@@ -257,35 +260,34 @@ void kal_node_correction(double node_x, double node_y, double signal_strength) {
 }
 
 
-// kal_wall_correction: additional correction, as we know wall positions in x relative to start position
-void kal_wall_correction(double wall_x, double sonar_dist){
-    // check if close to wall
-    if(sonar_dist > WALL_SONAR_THRESH) {
+// kal_wall_heading_correction: additional correction, as we know wall positions in x relative to start position
+void kal_wall_heading_correction(double expected_heading) {
+
+    // check if EKF estimate places robot near a known wall
+    bool near_front = fabs(mu(0) - 7.0)  < 0.5;
+    bool near_back  = fabs(mu(0) - (-1.3)) < 0.5;
+
+    if(!near_front && !near_back) {
         return;
     }
 
-    // Observation model Jacobian 
-    Eigen::Matrix<double, 1, 3> H_t;
-    H_t(0,0) = 1.0; 
-    H_t(0,1) = 0.0; 
-    H_t(0,2) = 0.0;
- 
-    // measurement noise matrix 
-    Eigen::Matrix<double, 1, 1> Q_t;
-    Q_t(0,0) = KAL_SIGMA_WALL * KAL_SIGMA_WALL;
- 
- 
-    // Step 3
-    Eigen::Matrix<double, 3, 1> K_t = sigma * H_t.transpose() * (H_t * sigma * H_t.transpose() + Q_t).inverse();
-    
-    // Step 4
-    mu    = mu + K_t * (wall_x - mu(0));
-    mu(2) = normalize_angle(mu(2));
+    // only correct if heading is roughly aligned — robot not mid-turn
+    double heading_err = normalize_angle(expected_heading - mu(2));
+    if(fabs(heading_err) > M_PI/4.0) return;
 
-    // Step 5
+    Eigen::Matrix<double,1,3> H_t;
+    H_t(0,0) = 0.0; H_t(0,1) = 0.0; H_t(0,2) = 1.0;
+
+    Eigen::Matrix<double,1,1> Q_t;
+    Q_t(0,0) = 0.1 * 0.1;
+
+    Eigen::Matrix<double,3,1> K_t = sigma * H_t.transpose() * 
+        (H_t * sigma * H_t.transpose() + Q_t).inverse();
+
+    mu    = mu + K_t * heading_err;
+    mu(2) = normalize_angle(mu(2));
     sigma = (I - K_t * H_t) * sigma;
-    
-    // check for NaN
+
     if(kal_check_nan(sigma)) {
         sigma = Mat::Identity() * 0.01;
     }
