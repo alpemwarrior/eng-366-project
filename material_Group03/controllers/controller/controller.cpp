@@ -17,12 +17,19 @@ int main(int argc, char **argv) {
   Pioneer robot = Pioneer(argc, argv);
   robot.init();
 
+  //WP1: Temperature logging (not required for WP3)
+  // Initialize temperature .csv
+  //std::string f_temperature = "temperature.csv";
+  //int f_temperature_cols = init_csv(f_temperature, "time, sensor_id, sensor_x, sensor_y, temp_in, temp_out,");
+  // <-- don't forget the comma at the end of the string!!
+
   //WP3: LightSensor initialization (necessary even after integration)
   LightSensor lightLightSensor;
 
   // Initialize an example log file
   std::string f_example = "example.csv";
-  int f_example_cols = init_csv(f_example, "time, light, accx, accy, accz,");
+  int         f_example_cols = init_csv(f_example, "time, light, accx, accy, accz,"); 
+  // <-- don't forget the comma at the end of the string!!
 
   //WP3: Trajectory logging for offline plot (necessary even after integration)
   std::string f_traj = "trajectory.csv";
@@ -35,10 +42,10 @@ int main(int argc, char **argv) {
     //////////////////////////////
    
     double  time = robot.get_time();              // Current time in seconds 
-    double* ps_values = robot.get_proximity();    // Measured proximity SensorLightSensor values (16 values)
+    double* ps_values = robot.get_proximity();    // Measured proximity Sensor values (16 values)
     double* wheel_rot = robot.get_encoders();     // Wheel rotations (left, right)
     double  light = robot.get_light_intensity();  // Light intensity
-    double* imu = robot.get_imu();                // IMU with accelerations and rotation rates
+    double* imu = robot.get_imu();                // IMU with accelerations and rotation rates (acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z)
 
     // ==================== WP3: LIGHT ANALYSIS ====================
 
@@ -70,13 +77,14 @@ int main(int argc, char **argv) {
     // NAVIGATION - WP1
     //(not required for WP3 testing, uncomment when integration)
     double lws = 0.0, rws = 0.0;  // left and right wheel speeds
-    fsm(ps_values, lws, rws);     // finite state machine 
+    
+    fsm(ps_values, &robot, lws, rws);     // finite state machine 
     robot.set_motors_velocity(lws, rws); // set the wheel velocities
 
-    // STATE ESTIMATION MARKER - WP2
+    // STATE ESTIMATION MARKER (green arrow in simulation) - WP2
     //(not required for WP3 testing, uncomment when integration)
-    robot.hide_state_estimate_marker(); 
-    robot.set_state_estimate_marker(0.0, 0.0, time, time);
+    robot.hide_state_estimate_marker(); // this hides the marker in the simulation
+    robot.set_state_estimate_marker(0.0, 0.0, time, time); // rotate in place for now, input your state estimate here for visualization in the simulation!
 
     //////////////////
     // Data logging //
@@ -84,6 +92,10 @@ int main(int argc, char **argv) {
 
     // Log the time and light and IMU data in a csv file 
     log_csv(f_example, f_example_cols, time, light, imu[0], imu[1], imu[2]);
+
+    //if (signal_strength != 0.0) {
+    //  log_csv(f_temperature, time, data[0], data[1], data[2], data[3], data[4]);
+    //}
   }
 
   // Enter here exit cleanup code.
