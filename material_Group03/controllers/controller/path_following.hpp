@@ -12,7 +12,7 @@ typedef Eigen::Vector2d vec_2d;
 
 #define SIGN(x) ((x > 0.0) - (x < 0.0))
 #define K_FORWARD 1.0
-#define K_NORMAL  6.0
+#define K_NORMAL  5.5
 
 #define K_ANGLE  20//20   // In s^(-1)
 #define K_V      2    // In m
@@ -210,4 +210,45 @@ bool checkIfPathIsFinished(double* pos) {
   
   return false;
 }
+
+#define WALL_CORRECTION_THRESHOLD 1.0
+#define ANGLE_DIF (M_PI / 16)
+#define PS_TO_DIST(x) ((1024.0 - x)*5.0/1024.0)
+
+
+bool getWallHeadingError(Pioneer* robot, double* rheading) {
+    // check if EKF estimate places robot near a known wall
+    bool near_front = fabs(mu(0) - 7.0)  < WALL_CORRECTION_THRESHOLD;
+    bool near_back  = fabs(mu(0) - (-1.3)) < WALL_CORRECTION_THRESHOLD;
+    double r1, r2, alpha, c;
+    double* ps;
+
+    if(!near_front && !near_back) {
+        return false;
+    }
+
+    if (abs(mu(2) - M_PI_2) > M_PI_4) {
+        return false;
+    }
+
+    ps = robot->get_proximity();
+
+    if (near_front) {
+        r1 = PS_TO_DIST(ps[7]); r2 = PS_TO_DIST(ps[8]);
+
+        c = sqrt(r1*r1 + r2*r2 - 2*r1*r2*cos(2*ANGLE_DIF));
+        alpha = asin(r1*sin(2*ANGLE_DIF)/c);
+        *rheading = -M_PI_2 + alpha + ANGLE_DIF;
+        printf("%f, %f\n", ps[7], r2);
+    }
+
+    return true;
+}
+
+
+
+
+
+    
+
 

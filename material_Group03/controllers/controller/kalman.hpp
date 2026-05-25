@@ -84,7 +84,7 @@ static double last_mu_theta = mu(2);
 
 // Process noise -> accounts for unmodeled physical effects, like wheel slip 
 static const double KAL_SIGMA_XY_PER_M    = 0.05;  // [m/m]   positional slip
-static const double KAL_SIGMA_THETA_PER_M = 0.03;  // [rad/m] heading slip
+static const double KAL_SIGMA_THETA_PER_M = 0.1;  // [rad/m] heading slip
 
 // Measurement noise
 // GYR_STD given in pioneer_interface.hpp
@@ -264,13 +264,13 @@ void kal_node_correction(double node_x, double node_y, double signal_strength) {
     }
 }
 
+#define WALL_CORRECTION_THRESHOLD 1
 
 // kal_wall_heading_correction: additional correction, as we know wall positions in x relative to start position
 void kal_wall_heading_correction(double expected_heading) {
-
     // check if EKF estimate places robot near a known wall
-    bool near_front = fabs(mu(0) - 7.0)  < 0.5;
-    bool near_back  = fabs(mu(0) - (-1.3)) < 0.5;
+    bool near_front = fabs(mu(0) - 7.0)  < WALL_CORRECTION_THRESHOLD;
+    bool near_back  = fabs(mu(0) - (-1.3)) < WALL_CORRECTION_THRESHOLD;
 
     if(!near_front && !near_back) {
         return;
@@ -293,8 +293,8 @@ void kal_wall_heading_correction(double expected_heading) {
     mu(2) = normalize_angle(mu(2));
     sigma = (I - K_t * H_t) * sigma;
 
-    // Step 5
-    sigma = (I - K_t * H_t) * sigma;
+    printf("Correcting with wall\n");
+
     
     // check for NaN
     if(kal_check_nan(sigma)) {

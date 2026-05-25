@@ -27,7 +27,7 @@ Response: >5m -> 0, 0m -> 1024
 */
 
 // Side -> Front
-#define Bt5 -0.25
+#define Bt5 -0.0
 #define Bt1 -1.25
 #define Bt2 -1.0
 #define Bt3 -0.75   

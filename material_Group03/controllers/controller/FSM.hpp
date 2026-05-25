@@ -49,6 +49,7 @@ double position[4]; // To be removed once odometry is implemented
 int wp_last, wp;
 double ds, dth;
 LightAnalyzer lightLightSensor;
+double wallheadingerror;
 
 /**
  * @brief Finite State Machine that manages the robot's behavior
@@ -71,6 +72,7 @@ void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right)
       case FOLLOW_PATH:
         compute_odom(robot, &ds, &dth);
         kal_predict(ds, dth);
+        kal_wall_heading_correction(3.1415/2);
 
         position[0] = mu(0);
         position[1] = mu(1);
@@ -84,13 +86,17 @@ void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right)
 
         //if (robot->get_ground_truth_pose(position)) {
         if (1) {
-          lightLightSensor.update(robot, position[4], position[0], position[1]);
+          lightLightSensor.update(robot, position[3], position[0], position[1]);
 
           // Follow path if location is available
           wp = followPathBehavior(ps_values, position, vel_left, vel_right);
           if (wp_last != wp) {
             printf("Following segment %d (waypoints %d -> %d)\n", wp, wp, wp+1);
             wp_last = wp;
+          }
+
+          if (getWallHeadingError(robot, &wallheadingerror) ) {
+            printf("Wall error is %f rad (%f degrees) \n", wallheadingerror, wallheadingerror*180/M_PI);
           }
 
           // Transition criterion

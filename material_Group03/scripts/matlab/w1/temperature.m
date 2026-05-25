@@ -52,5 +52,7 @@ figure(1);
 hold on;
 plot(times, temperatures_in, 'x');
 plot(xeval, yfit);
-
+xlabel("Time [s]")
+ylabel("Inside temperature [degree Celsius]")
+title("Inside temperature fit and plot")
 
