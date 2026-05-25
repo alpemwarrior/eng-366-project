@@ -83,7 +83,7 @@ bool kal_check_nan(const MatX& m){
 static double last_mu_theta = 0.0;
 
 // Process noise -> accounts for unmodeled physical effects, like wheel slip 
-static const double KAL_SIGMA_XY_PER_M    = 0.2;  // [m/m]   positional slip
+static const double KAL_SIGMA_XY_PER_M = 0.2;  // [m/m]   positional slip
 static const double KAL_SIGMA_THETA_PER_M = 0.1;  // [rad/m] heading slip
 
 // Measurement noise
@@ -99,6 +99,12 @@ static const double WALL_SONAR_THRESH = 0.6;
 static const double NODE_HEIGHT    = 1.000;                          
 static const double ROBOT_SENSOR_H = PioneerInfo::height;            
 static const double DELTA_H        = NODE_HEIGHT - ROBOT_SENSOR_H;  
+
+// Constants relating to wall heading correction
+#define WALL_CORRECTION_THRESHOLD 1.0
+#define ANGLE_DIF (2*M_PI/9)
+#define PS_TO_DIST(x) ((1024.0 - x)*5.0/1024.0)
+#define KAL_SIGMA_WALL_HEADING 0.05
 
 // *********************
 // ----- FUNCTIONS -----
@@ -264,10 +270,7 @@ void kal_node_correction(double node_x, double node_y, double signal_strength) {
     }
 }
 
-#define WALL_CORRECTION_THRESHOLD 1.0
-#define ANGLE_DIF (2*M_PI/9)
-#define PS_TO_DIST(x) ((1024.0 - x)*5.0/1024.0)
-
+// getWallHeadingError: uses sonar readings when near a wall to estimate angle of robot relative to that wall
 bool getWallHeadingError(Pioneer* robot, double* rheading) {
     // check if EKF estimate places robot near a known wall
     bool near_front = fabs(mu(0) - 7.0)  < WALL_CORRECTION_THRESHOLD;
@@ -275,56 +278,71 @@ bool getWallHeadingError(Pioneer* robot, double* rheading) {
     double r1, r2, alpha, c;
     double* ps;
 
+    // if not near a known wall, then no estimation is possible
     if(!near_front && !near_back) {
         return false;
     }
 
+    // correct applied when robot roughly turned alogside the wall (heading ≈ π/2), tolerance rejects corrections mid-turn
     if (fabs(mu(2) - M_PI_2) > (M_PI/6)) {
         return false;
     }
 
     ps = robot->get_proximity();
-
+    
     if (near_front) {
-        r1 = PS_TO_DIST(ps[6]); r2 = PS_TO_DIST(ps[9]);
+        // r1, r2: get distances from sonar
+        r1 = PS_TO_DIST(ps[6]); 
+        r2 = PS_TO_DIST(ps[9]);
 
+        // cosine rule: find length c of triangle formed by r1, r2 and the wall, given that sonars are separated by angle 2*ANGLE_DIF
         c = sqrt(r1*r1 + r2*r2 - 2*r1*r2*cos(2*ANGLE_DIF));
+
+        // sine rule: find alpha, the angle between r1 and the wall normal
         alpha = asin(r1*sin(2*ANGLE_DIF)/c);
+
+        // convert alpha to absolute heading estimate
         *rheading = -M_PI_2 + alpha + ANGLE_DIF;
     }
 
     return true;
 }
 
-#define KAL_SIGMA_WALL_HEADING 0.05
-
-// kal_wall_heading_correction: additional correction, as we know wall positions in x relative to start position
+// kal_wall_heading_correction: additional correction, using estimate of angle of robot relative to wall
 void kal_wall_heading_correction(Pioneer* robot) {
     // check if EKF estimate places robot near a known wall
     double measured_heading;
-    
+
+    // if not near a wall, return 
     if (!getWallHeadingError(robot, &measured_heading)) {
         return;
     }
 
+    // getWallHeadingError returns angle relative to wall, so add pi/2 to convert robot heading frame
     measured_heading += M_PI_2;
 
+    // innovation: difference between measured and predicted heading
     double heading_err = normalize_angle(measured_heading - mu(2));
 
+    // observation model 
     Eigen::Matrix<double,1,3> H_t;
     H_t(0,0) = 0.0; H_t(0,1) = 0.0; H_t(0,2) = 1.0;
 
+    // measurement model
     Eigen::Matrix<double,1,1> Q_t;
     Q_t(0,0) = KAL_SIGMA_WALL_HEADING * KAL_SIGMA_WALL_HEADING;
 
-    Eigen::Matrix<double,3,1> K_t = sigma * H_t.transpose() *
-        (H_t * sigma * H_t.transpose() + Q_t).inverse();
+    // step 3
+    Eigen::Matrix<double,3,1> K_t = sigma * H_t.transpose() * (H_t * sigma * H_t.transpose() + Q_t).inverse();
 
-
-    mu    = mu + K_t * heading_err;
+    // step 4
+    mu = mu + K_t * heading_err;
     mu(2) = normalize_angle(mu(2));
+
+    // step 5
     sigma = (I - K_t * H_t) * sigma;
 
+    // check for NaN values 
     if (kal_check_nan(sigma)) {
         sigma = Mat::Identity() * 0.01;
     }
