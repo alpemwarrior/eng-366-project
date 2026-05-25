@@ -16,8 +16,8 @@ LightAnalyzer::LightAnalyzer() {
     }
 }
 
-void LightAnalyzer::update(Pioneer& robot, double current_time, double x, double y) {
-    double intensity = robot.get_light_intensity();
+void LightAnalyzer::update(Pioneer* robot, double current_time, double x, double y) {
+    double intensity = robot->get_light_intensity();
     //debugging
     //static int light_counter = 0;
     //if (light_counter % 30 == 0) {

@@ -12,7 +12,7 @@ typedef Eigen::Vector2d vec_2d;
 
 #define SIGN(x) ((x > 0.0) - (x < 0.0))
 #define K_FORWARD 1.0
-#define K_NORMAL  7.0
+#define K_NORMAL  6.0
 
 #define K_ANGLE  20//20   // In s^(-1)
 #define K_V      2    // In m

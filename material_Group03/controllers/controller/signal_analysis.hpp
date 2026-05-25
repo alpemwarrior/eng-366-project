@@ -17,7 +17,7 @@ struct LightDetection {
 class LightAnalyzer {
 public:
     LightAnalyzer();
-    void update(Pioneer& robot, double current_time, double x, double y);
+    void update(Pioneer* robot, double current_time, double x, double y);
     void reset();
 
 private:
@@ -29,7 +29,7 @@ private:
 
     // parameters
     const int BUFFER_SIZE = 256;
-    const double LIGHT_THRESHOLD = 1.5;
+    const double LIGHT_THRESHOLD = 1.8;
     const double GOOD_VARIANCE_THRESHOLD = 0.004;
     const double DEFECT_FREQ_THRESHOLD = 2.0;
     const double SAMPLING_RATE = 31.25;

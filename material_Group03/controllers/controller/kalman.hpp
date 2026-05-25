@@ -114,9 +114,9 @@ static inline double normalize_angle(double angle) {
 void kal_init() {
     mu  = Vec::Zero();
     sigma = Mat::Zero();
-    sigma(0,0) = 0.01 * 0.01;   // ~1 cm std-dev on x
-    sigma(1,1) = 0.01 * 0.01;   // ~1 cm std-dev on y
-    sigma(2,2) = 0.001 * 0.001; // ~0.06 deg std-dev on heading
+    sigma(0,0) = 1e-6;
+    sigma(1,1) = 1e-6;
+    sigma(2,2) = 1e-6;
 }
 
 // kal_predict: implements prediction step of EKF algorithm 

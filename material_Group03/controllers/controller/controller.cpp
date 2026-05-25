@@ -10,7 +10,6 @@
 #include "kalman.hpp"
 #include "FSM.hpp"
 #include "serial.hpp"
-#include "signal_analysis.hpp"
 #include "path_following.hpp"
 
 int main(int argc, char **argv) {
