@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-LightAnalyzer::LightAnalyzer() {
+LightAnalyser::LightAnalyser() {
     light_log_file = fopen("data/lights_data.csv", "w");
 
     if (light_log_file != NULL) {
@@ -16,7 +16,7 @@ LightAnalyzer::LightAnalyzer() {
     }
 }
 
-void LightAnalyzer::update(Pioneer& robot, double current_time, double x, double y) {
+void LightAnalyser::update(Pioneer& robot, double current_time, double x, double y) {
     double intensity = robot.get_light_intensity();
     //debugging
     //static int light_counter = 0;
@@ -85,7 +85,7 @@ void LightAnalyzer::update(Pioneer& robot, double current_time, double x, double
   }
 }
 
-std::string LightAnalyzer::classifyLight(const std::vector<double>& buffer, double& dominant_freq) {
+std::string LightAnalyser::classifyLight(const std::vector<double>& buffer, double& dominant_freq) {
     dominant_freq = 0.0;
 
     if ((int)buffer.size() < 8) {
@@ -181,7 +181,7 @@ std::string LightAnalyzer::classifyLight(const std::vector<double>& buffer, doub
     return "good";
 }
 
-void LightAnalyzer::computeFFT(const std::vector<double>& signal, std::vector<double>& magnitudes) {
+void LightAnalyser::computeFFT(const std::vector<double>& signal, std::vector<double>& magnitudes) {
     int n = (int)signal.size();
 
     if (n <= 0) {
@@ -221,9 +221,9 @@ void LightAnalyzer::computeFFT(const std::vector<double>& signal, std::vector<do
     free(cfg);
 }
 
-//void LightAnalyzer::reset() {
-//    light_buffer.clear();
-//    current_light = LightDetection();
-//    light_id = 0;
-//    was_under_light = false;
-//}
+void LightAnalyser::reset() {
+    light_buffer.clear();
+    current_light = LightDetection();
+    light_id = 0;
+    was_under_light = false;
+}

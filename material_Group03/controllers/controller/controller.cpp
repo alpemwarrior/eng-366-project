@@ -9,7 +9,7 @@
 #include "FSM.hpp"
 #include "serial.hpp"
 #include "signal_analysis.hpp"
-// #include "path_following.hpp"
+//#include "path_following.hpp"
 
 int main(int argc, char **argv) {
 
@@ -23,8 +23,8 @@ int main(int argc, char **argv) {
   //int f_temperature_cols = init_csv(f_temperature, "time, sensor_id, sensor_x, sensor_y, temp_in, temp_out,");
   // <-- don't forget the comma at the end of the string!!
 
-  //WP3: LightSensor initialization (necessary even after integration)
-  LightSensor lightLightSensor;
+  //WP3: LightAnalyser initialization (necessary even after integration)
+  LightAnalyser lightLightAnalyser;
 
   // Initialize an example log file
   std::string f_example = "example.csv";
@@ -63,8 +63,8 @@ int main(int argc, char **argv) {
     //WP3: Log trajectory for offline plot (necessary even after integration)
     log_csv(f_traj, f_traj_cols, time, x, y);
 
-    //WP3: Call to LighhtLightSensor (necessary even after integration)
-    lightLightSensor.update(robot, time, x, y);
+    //WP3: Call to LighhtLightAnalyser (necessary even after integration)
+    lightLightAnalyser.update(robot, time, x, y);
 
     ////////////////////
     // Implementation //

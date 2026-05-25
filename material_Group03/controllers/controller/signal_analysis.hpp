@@ -14,9 +14,9 @@ struct LightDetection {
     double max_intensity = 0.0;
 };
 
-class LightAnalyzer {
+class LightAnalyser {
 public:
-    LightAnalyzer();
+    LightAnalyser();
     void update(Pioneer& robot, double current_time, double x, double y);
     void reset();
 
