@@ -159,17 +159,18 @@ void kal_gyro_correction(double gyro_z, double dt) {
     double z_meas  = gyro_z * dt;
 
     // static variables to track gyro-integrated heading across function calls
-    static double gyro_heading = 0.0;
-    static bool   gyro_init    = false;
+    static double last_mu_theta = 0.0;
+    static bool gyro_init = false;
 
     // on first call, initialise gyro and gyro_heading 
     if(!gyro_init) { 
-        gyro_heading = 0.0; 
+        last_mu_theta = mu(2);
         gyro_init = true; 
+        return;
     }
 
-    // add measured change in heading to gyro_heading
-    gyro_heading = normalize_angle(gyro_heading + z_meas);
+    // predicted change in heading from odometry
+    double z_pred = normalize_angle(mu(2) - last_mu_theta);
     
     // Jacobian of observation model
     Eigen::Matrix<double, 1, 3> H_t;
@@ -186,12 +187,15 @@ void kal_gyro_correction(double gyro_z, double dt) {
     Eigen::Matrix<double, 3, 1> K_t = sigma * H_t.transpose() * (H_t * sigma * H_t.transpose() + Q_t).inverse();
     
     // Step 4 of EKF algorithm 
-    mu = mu + K_t * normalize_angle(gyro_heading - mu(2));
+    mu = mu + K_t * normalize_angle(z_meas - z_pred);
     mu(2) = normalize_angle(mu(2));
 
     // Step 5 of EKF algorithm 
     sigma = (I - K_t * H_t) * sigma;
     
+    // save mu_theta for next function call
+    last_mu_theta = mu(2);
+
     // check for NaN values
     if(kal_check_nan(sigma)) {
         sigma = Mat::Identity() * 0.01;
