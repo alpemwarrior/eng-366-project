@@ -92,6 +92,10 @@ static const double KAL_SIGMA_WALL  = 0.05;        // [m]
 // Only fire a wall update when the relevant sonar reads below this [m]
 static const double WALL_SONAR_THRESH = 0.6;
  
+// Node geometry 
+static const double NODE_HEIGHT    = 1.000;                          
+static const double ROBOT_SENSOR_H = PioneerInfo::height;            
+static const double DELTA_H        = NODE_HEIGHT - ROBOT_SENSOR_H;  
 
 // *********************
 // ----- FUNCTIONS -----
@@ -165,7 +169,7 @@ void kal_gyro_correction(double gyro_z, double dt) {
     }
 
     // add measured change in heading to gyro_heading
-    gyro_heading = kal_wrap(gyro_heading + z_meas);
+    gyro_heading = normalize_angle(gyro_heading + z_meas);
     
     // Jacobian of observation model
     Eigen::Matrix<double, 1, 3> H_t;
@@ -179,17 +183,19 @@ void kal_gyro_correction(double gyro_z, double dt) {
     Q_t(0,0) = sigma_z * sigma_z;
     
     // Step 3 of EKF algorithm
-    Eigen::Matrix<double,3,1> K_t = sigma * H_t.transpose() * (H_t * sigma * H_t.transpose() + Q_t).inverse();
+    Eigen::Matrix<double, 3, 1> K_t = sigma * H_t.transpose() * (H_t * sigma * H_t.transpose() + Q_t).inverse();
     
     // Step 4 of EKF algorithm 
-    mu = mu + K_t * kal_wrap(gyro_heading - mu(2));
-    mu(2) = kal_wrap(mu(2));
+    mu = mu + K_t * normalize_angle(gyro_heading - mu(2));
+    mu(2) = normalize_angle(mu(2));
 
     // Step 5 of EKF algorithm 
     sigma = (I - K_t * H_t) * sigma;
     
     // check for NaN values
-    if(kal_check_nan(sigma)) sigma = Mat::Identity() * 0.01;
+    if(kal_check_nan(sigma)) {
+        sigma = Mat::Identity() * 0.01;
+    }
 }
 
 // kal_node_correction: additional correction, robot receives x and y location of each node via serial communication
@@ -199,8 +205,53 @@ void kal_node_correction(double node_x, double node_y, double signal_strength) {
         return;
     }
 
-    
+    double s_squared = 1 / signal_strength; 
+    double dh_squared = DELTA_H * DELTA_H;
+
+    // return if robot under the node
+     if (s_squared <= dh_squared + 1e-9) {
+        return;
+    }
+
+    // displacement in xy plane from robot to node 
+    double s_xy_measured = sqrt(s_squared - dh_squared);
+
+    // predicted distance from robot to node
+    double dx = node_x - mu(0);
+    double dy = node_y - mu(1);
+    double s_xy_predicted = sqrt(dx*dx + dy*dy);
+
+    if (s_xy_predicted < 1e-6) {
+        return;  // avoid division by zero
+    }
+
+    // Jacobian of observation model h(x) = sqrt((x_n-x)^2 + (y_n-y)^2)
+    Eigen::Matrix<double, 1,3> H_t;
+    H_t(0,0) = -dx / s_xy_predicted;  // dh/dx
+    H_t(0,1) = -dy / s_xy_predicted;  // dh/dy
+    H_t(0,2) =  0.0;
+
+    // measurement noise matrix 
+    static const double KAL_SIGMA_RANGE = 0.15;  // [m]
+    Eigen::Matrix<double, 1, 1> Q_t;
+    Q_t(0,0) = KAL_SIGMA_RANGE * KAL_SIGMA_RANGE;
+
+
+    // Step 3
+    Eigen::Matrix<double, 3, 1> K_t = sigma * H_t.transpose() * (H_t * sigma * H_t.transpose() + Q_t).inverse();
+
+    // Step 4
+    mu    = mu + K_t * (s_xy_measured - s_xy_predicted);
+    mu(2) = normalize_angle(mu(2));
+
+    // Step 5
+    sigma = (I - K_t * H_t) * sigma;
+
+    if(kal_check_nan(sigma)) {
+        sigma = Mat::Identity() * 0.01;
+    }
 }
+
 
 // kal_wall_correction: additional correction, as we know wall positions in x relative to start position
 void kal_wall_correction(double wall_x, double sonar_dist){
@@ -210,26 +261,28 @@ void kal_wall_correction(double wall_x, double sonar_dist){
     }
 
     // Observation model Jacobian 
-    Eigen::Matrix<double,1,3> H_t;
+    Eigen::Matrix<double, 1, 3> H_t;
     H_t(0,0) = 1.0; 
     H_t(0,1) = 0.0; 
     H_t(0,2) = 0.0;
  
     // measurement noise matrix 
-    Eigen::Matrix<double,1,1> Q_t;
+    Eigen::Matrix<double, 1, 1> Q_t;
     Q_t(0,0) = KAL_SIGMA_WALL * KAL_SIGMA_WALL;
  
  
     // Step 3
-    Eigen::Matrix<double,3,1> K_t = sigma * H_t.transpose() * (H_t * sigma * H_t.transpose() + Q_t).inverse();
+    Eigen::Matrix<double, 3, 1> K_t = sigma * H_t.transpose() * (H_t * sigma * H_t.transpose() + Q_t).inverse();
     
     // Step 4
     mu    = mu + K_t * (wall_x - mu(0));
-    mu(2) = kal_wrap(mu(2));
+    mu(2) = normalize_angle(mu(2));
 
     // Step 5
     sigma = (I - K_t * H_t) * sigma;
     
     // check for NaN
-    if(kal_check_nan(sigma)) sigma = Mat::Identity() * 0.01;
+    if(kal_check_nan(sigma)) {
+        sigma = Mat::Identity() * 0.01;
+    }
 }
