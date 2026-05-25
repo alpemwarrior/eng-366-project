@@ -71,18 +71,18 @@ void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right)
         // Do not break, execute FOLLOW_PATH immediately
 
       case FOLLOW_PATH:
-        compute_odom(robot, &ds, &dth);
-        kal_predict(ds, dth);
+        //compute_odom(robot, &ds, &dth);
+        //kal_predict(ds, dth);
 
-        position[0] = mu(0);
-        position[1] = mu(1);
-        position[2] = mu(2);
-        position[3] = robot->get_time();
+        //position[0] = mu(0);
+        //position[1] = mu(1);
+        //position[2] = mu(2);
+        //position[3] = robot->get_time();
 
 
 
-        robot->hide_state_estimate_marker();
-        robot->set_state_estimate_marker(position[0], position[1], position[2], position[3]);
+        //robot->hide_state_estimate_marker();
+        //robot->set_state_estimate_marker(position[0], position[1], position[2], position[3]);
 
         if (robot->get_ground_truth_pose(position)) {
         //if (1) {
@@ -95,8 +95,7 @@ void fsm(double* ps_values, Pioneer* robot, double &vel_left, double &vel_right)
             wp_last = wp;
           }
 
-          kal_wall_heading_correction(robot);
-          printf("%f\n", mu(1));
+          //kal_wall_heading_correction(robot);
 
           // Transition criterion
           if (checkIfPathIsFinished(position)) {
