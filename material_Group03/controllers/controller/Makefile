@@ -67,7 +67,7 @@
 
 INCLUDE = -I"../../libraries" -I"/usr/include/eigen3" 
 C_SOURCES = ../../libraries/kiss_fft/kiss_fft.c
-CXX_SOURCES = controller.cpp
+CXX_SOURCES = controller.cpp signal_analysis.cpp
 
 ### Do not modify: this includes Webots global Makefile.include
 null :=

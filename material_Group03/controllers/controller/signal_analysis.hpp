@@ -1,39 +1,43 @@
-#include <math.h>
-#include "kiss_fft/kiss_fft.h" // FFT library
+//# Implemented by:
 
-#define SIGNAL_LENGTH 1024 // length of the signal to be analyzed
+#ifndef SIGNAL_ANALYSIS_H
+#define SIGNAL_ANALYSIS_H
 
-/**
- * @brief KISS FFT USAGE EXAMPLE
- * @param signal_data pointer to the array containing the signal to be analyzed 
- */
-void kiss_fft_demo(double* signal_data){
+#include <vector>
+#include <deque>
+#include <string>
+#include "pioneer_interface/pioneer_interface.hpp"
 
-    /* fft preparation */
-    kiss_fft_cfg cfg = kiss_fft_alloc( SIGNAL_LENGTH, 0, NULL, NULL );
+struct LightDetection {
+    double x = 0.0;
+    double y = 0.0;
+    double max_intensity = 0.0;
+};
 
-     /* fft variables */  
-    kiss_fft_cpx cx_in[SIGNAL_LENGTH],  // input signal (time domain)
-                 cx_out[SIGNAL_LENGTH]; // output signal (frequency domain)
-    
-    // prepare the input (add signal in the 'in' structure of the kiss_fft)
-    for (int n=0; n<SIGNAL_LENGTH; n++) {
-      cx_in[n].r = signal_data[n]; // the real part of the signal is the data
-      cx_in[n].i = 0.; // set the imaginary part to zero
-    }
-    
-    // run the fft (the fourier transform is stored in the 'out' structure of the kiss_fft)
-    kiss_fft( cfg , cx_in , cx_out ); 
+class LightAnalyzer {
+public:
+    LightAnalyzer();
+    void update(Pioneer& robot, double current_time, double x, double y);
+    void reset();
 
-    // compute the magnitude of the complex numbers
-    double mag[SIGNAL_LENGTH];
-    for (int n=0; n<SIGNAL_LENGTH; n++) {
-      mag[n] = sqrt(cx_out[n].r*cx_out[n].r + cx_out[n].i*cx_out[n].i);
-    }
+private:
+    std::deque<double> light_buffer;
+    std::vector<double> current_light_samples;
+    LightDetection current_light;
+    int light_id = 0;
+    bool was_under_light = false;
 
-    // TODO: do something with the magnitude, real, imaginary part of the fft
-    // ...
+    // parameters
+    const int BUFFER_SIZE = 256;
+    const double LIGHT_THRESHOLD = 1.5;
+    const double GOOD_VARIANCE_THRESHOLD = 0.004;
+    const double DEFECT_FREQ_THRESHOLD = 2.0;
+    const double SAMPLING_RATE = 31.25;
 
-    // free fft memory once done with it
-    free(cfg);
-} 
+    std::string classifyLight(const std::vector<double>& buffer, double& dominant_freq);
+    void computeFFT(const std::vector<double>& signal, std::vector<double>& magnitudes);
+
+    FILE* light_log_file = NULL;
+};
+
+#endif
